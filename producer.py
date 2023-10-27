@@ -1,23 +1,23 @@
-from kafka import KafkaProducer
-import ssl
+from kafka import KafkaProducer, KafkaAdminClient, KafkaConsumer
+from kafka.errors import KafkaError
 
-sasl_mechanism = 'PLAIN'
-security_protocol = 'SASL_SSL'
 
-# Create a new context using system defaults, disable all but TLS1.2
-context = ssl.create_default_context()
-context.options &= ssl.OP_NO_TLSv1
-context.options &= ssl.OP_NO_TLSv1_1
+p = KafkaProducer(bootstrap_servers='127.0.0.1:57476', key_serializer=str.encode, value_serializer=str.encode)
+# Asynchronous by default
+future = p.send('bar', key='foo', value=b'bar')
+metrics = p.metrics()
+print(metrics)
+# Block for 'synchronous' sends
+try:
+    record_metadata = future.get(timeout=10)
+except KafkaError:
+    # Decide what to do if produce request failed...
+    pass
 
-producer = KafkaProducer(bootstrap_servers='10.98.254.94:30010',
-                         sasl_plain_username='user',
-                         sasl_plain_password='TqQ9WIpiM7',
-                         security_protocol=security_protocol,
-                         ssl_context=context,
-                         sasl_mechanism=sasl_mechanism,
-                         api_version=(0, 10),
-                         retries=5)
+# Successful result returns assigned partition and offset
+print (record_metadata.topic)
+print (record_metadata.partition)
+print (record_metadata.offset)
 
-producer.send("test", "text")
-#for _ in range(100):
+# for _ in range(100):
 #    producer.send('foobar', b'some_message_bytes')
